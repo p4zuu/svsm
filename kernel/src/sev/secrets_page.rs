@@ -37,7 +37,7 @@ pub struct SecretsPage {
 
 impl SecretsPage {
     pub const fn new() -> Self {
-        SecretsPage {
+        Self {
             version: 0,
             gctxt: 0,
             fms: 0,
@@ -57,7 +57,17 @@ impl SecretsPage {
         }
     }
 
-    pub fn copy_from(&mut self, source: VirtAddr) {
+    /// Copy secrets page's content pointed by a [`VirtAddr`]
+    ///
+    /// # Safety
+    ///
+    /// The caller should verify that both `self` and `source`:
+    /// * are memory-mapped
+    /// * have been allocated with the size of [`SecretsPage`] structure.
+    ///
+    /// The coller should also verify that `self` doesn't point to an
+    /// attacker-controllable address.
+    pub unsafe fn copy_from(&mut self, source: VirtAddr) {
         let from = source.as_ptr::<SecretsPage>();
 
         unsafe {
@@ -65,7 +75,17 @@ impl SecretsPage {
         }
     }
 
-    pub fn copy_to(&self, target: VirtAddr) {
+    /// Copy a secrets page's content to memory pointed by a [`VirtAddr`]
+    ///
+    /// # Safety
+    ///
+    /// The caller should verify that both `self` and `target`:
+    ///  * are memory-mapped
+    ///  * have been allocated with the size of [`SecretsPage`] structure.
+    ///
+    /// The coller should also verify that `target` doesn't point to an
+    /// attacker-controllable address.
+    pub unsafe fn copy_to(&self, target: VirtAddr) {
         let to = target.as_mut_ptr::<SecretsPage>();
 
         unsafe {
