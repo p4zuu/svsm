@@ -39,9 +39,16 @@ pub fn read_u8(v: VirtAddr) -> Result<u8, SvsmError> {
     }
 }
 
+/// Writes 1 byte at a virtual address.
+///
+/// # Safety
+///
+/// Caller should verify that `v` is valid for writes and that an attacker
+/// can't control the paramaters, that could grant it a potential arbitrary write
+/// primitive.
 #[allow(dead_code)]
 #[inline]
-pub fn write_u8(v: VirtAddr, val: u8) -> Result<(), SvsmError> {
+pub unsafe fn write_u8(v: VirtAddr, val: u8) -> Result<(), SvsmError> {
     let mut rcx: u64;
 
     unsafe {
@@ -244,7 +251,10 @@ mod tests {
         let test_address = VirtAddr::from(test_buffer.as_mut_ptr());
         let data_to_write = 0x42;
 
-        write_u8(test_address, data_to_write).unwrap();
+        // SAFETY: it's a test.
+        unsafe {
+            write_u8(test_address, data_to_write).unwrap();
+        }
 
         assert_eq!(test_buffer[0], data_to_write);
     }
