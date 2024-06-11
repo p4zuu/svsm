@@ -196,8 +196,13 @@ impl<T: Copy> GuestPtr<T> {
         Self { ptr: p }
     }
 
+    /// # Safety
+    ///
+    /// Caller should verify that `self.ptr` is valid for read and that an attacker
+    /// can't control where `self.ptr` points to, that could grant it a potential
+    /// arbitrary read primitive.
     #[inline]
-    pub fn read(&self) -> Result<T, SvsmError> {
+    pub unsafe fn read(&self) -> Result<T, SvsmError> {
         let mut buf = MaybeUninit::<T>::uninit();
 
         unsafe {
@@ -206,13 +211,27 @@ impl<T: Copy> GuestPtr<T> {
         }
     }
 
+    /// # Safety
+    ///
+    /// Caller should verify that `self.ptr` is valid for writes and that an
+    /// attacker can't control where `self.ptr` points to, that could grant
+    /// it a potential arbitrary write primitive.
+    /// The caller should also verify that `self.ptr + size_of::<T> still
+    /// points to valid memor, and that belongs to the caller.
     #[inline]
-    pub fn write(&self, buf: T) -> Result<(), SvsmError> {
+    pub unsafe fn write(&self, buf: T) -> Result<(), SvsmError> {
         unsafe { do_movsb(&buf, self.ptr) }
     }
 
+    /// # Safety
+    ///
+    /// Caller should verify that `self.ptr` is valid for writes and that an
+    /// attacker can't control where `self.ptr` points to, that could grant
+    /// it a potential arbitrary write primitive.
+    /// The caller should also verify that `self.ptr + size_of::<T> still
+    /// points to valid memor, and that belongs to the caller.
     #[inline]
-    pub fn write_ref(&self, buf: &T) -> Result<(), SvsmError> {
+    pub unsafe fn write_ref(&self, buf: &T) -> Result<(), SvsmError> {
         unsafe { do_movsb(buf, self.ptr) }
     }
 
@@ -265,7 +284,8 @@ mod tests {
         let test_buffer = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
         let test_addr = VirtAddr::from(test_buffer.as_ptr());
         let ptr: GuestPtr<[u8; 15]> = GuestPtr::new(test_addr);
-        let result = ptr.read().unwrap();
+        // SAFETY: this is a test
+        let result = unsafe { ptr.read().unwrap() };
 
         assert_eq!(result, test_buffer);
     }
@@ -275,8 +295,8 @@ mod tests {
     #[cfg_attr(not(test_in_svsm), ignore = "Can only be run inside guest")]
     fn test_read_invalid_address() {
         let ptr: GuestPtr<u8> = GuestPtr::new(VirtAddr::new(0xDEAD_BEEF));
-
-        let err = ptr.read();
+        //SAFETY: this is a test
+        let err = unsafe { ptr.read() };
         assert!(err.is_err());
     }
 }

@@ -272,7 +272,11 @@ fn vc_decode_insn(ctx: &X86ExceptionContext) -> Result<Option<DecodedInsnCtx>, S
     // rip and rip+15 addresses should belong to a mapped page.
     // To ensure this, we rely on GuestPtr::read() that uses the exception table
     // to handle faults while fetching.
-    let insn_raw = rip.read()?;
+    // SAFETY: rip can be any mapped address, including userpace. It's technically
+    // not possible for a user to raise a #VC from a different context (different
+    // user or kernelspace), so rip can't belong to a different user or kernel
+    // memory.
+    let insn_raw = unsafe { rip.read()? };
 
     let insn = Instruction::new(insn_raw);
     Ok(Some(insn.decode(ctx)?))
